@@ -1,59 +1,44 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Menu, Search, ShoppingBag, X, ArrowDown, Plus } from "lucide-react";
 
-const products = [
-  ["Scene 01 / Heavy Tee", "₹2,490", "/images/wedrip-tee.png", "cream"],
-  ["After Hours / Box Hoodie", "₹4,290", "/images/wedrip-hoodie.png", "blue"],
-  ["Studio 02 / Heavy Tee", "₹2,490", "/images/wedrip-tee.png", "orange"],
-  ["No Fixed Address / Hoodie", "₹4,290", "/images/wedrip-hoodie.png", "ink"],
+import { useEffect, useState } from "react";
+import { ArrowDown, ArrowRight, Check, Menu, Minus, Plus, Search, ShoppingBag, X } from "lucide-react";
+
+type Product = { id: string; name: string; type: string; price: number; image: string; tone: string; detail: string; material: string };
+const products: Product[] = [
+  { id: "scene-01", name: "Scene 01 / Heavy Tee", type: "Heavyweight tee", price: 2490, image: "/images/wedrip-tee.png", tone: "cream", detail: "The everyday uniform, cut with room to move. A dense 240 GSM cotton tee with a dropped shoulder and a clean, unbranded front.", material: "100% combed cotton · 240 GSM" },
+  { id: "after-hours", name: "After Hours / Box Hoodie", type: "Box-fit hoodie", price: 4290, image: "/images/wedrip-hoodie.png", tone: "blue", detail: "Built for the part of the day that has no name. A heavyweight brushed fleece hoodie with a generous hood and a soft, structured hand-feel.", material: "100% cotton fleece · 420 GSM" },
+  { id: "studio-02", name: "Studio 02 / Heavy Tee", type: "Heavyweight tee", price: 2490, image: "/images/wedrip-tee.png", tone: "orange", detail: "A second study in shape and proportion. Relaxed through the body, finished with a wide rib neck and considered sleeve length.", material: "100% combed cotton · 240 GSM" },
+  { id: "no-fixed-address", name: "No Fixed Address / Hoodie", type: "Box-fit hoodie", price: 4290, image: "/images/wedrip-hoodie.png", tone: "ink", detail: "A familiar layer, made less familiar. The No Fixed Address hoodie is designed to feel lived-in from the first wear.", material: "100% cotton fleece · 420 GSM" },
 ];
+const sizes = ["XS", "S", "M", "L", "XL"];
+const money = (value: number) => `₹${value.toLocaleString("en-IN")}`;
 
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [cart, setCart] = useState(0);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); const [bagOpen, setBagOpen] = useState(false);
+  const [cart, setCart] = useState<{ product: Product; size: string; quantity: number }[]>([]);
+  const [activeProduct, setActiveProduct] = useState<Product | null>(null); const [view, setView] = useState<"front" | "back">("front"); const [size, setSize] = useState("M"); const [quantity, setQuantity] = useState(1);
+  const [scrollProgress, setScrollProgress] = useState(0); const [isScrolled, setIsScrolled] = useState(false);
+  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0); const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-  useEffect(() => {
-    let frame = 0;
-    const updateScrollState = () => {
-      frame = 0;
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress(maxScroll > 0 ? Math.min(window.scrollY / maxScroll, 1) : 0);
-      setIsScrolled(window.scrollY > 54);
-    };
-    const onScroll = () => {
-      if (!frame) frame = window.requestAnimationFrame(updateScrollState);
-    };
-    const sections = document.querySelectorAll<HTMLElement>("[data-reveal]");
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("is-visible")),
-      { threshold: 0.15 },
-    );
-    sections.forEach((section) => observer.observe(section));
-    updateScrollState();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", onScroll);
-      observer.disconnect();
-    };
-  }, []);
+  useEffect(() => { let frame = 0; const update = () => { frame = 0; const max = document.documentElement.scrollHeight - window.innerHeight; setScrollProgress(max > 0 ? Math.min(window.scrollY / max, 1) : 0); setIsScrolled(window.scrollY > 54); }; const onScroll = () => { if (!frame) frame = window.requestAnimationFrame(update); }; const sections = document.querySelectorAll<HTMLElement>("[data-reveal]"); const observer = new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("is-visible")), { threshold: 0.15 }); sections.forEach((section) => observer.observe(section)); update(); window.addEventListener("scroll", onScroll, { passive: true }); return () => { if (frame) window.cancelAnimationFrame(frame); window.removeEventListener("scroll", onScroll); observer.disconnect(); }; }, []);
+  useEffect(() => { const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") { setActiveProduct(null); setBagOpen(false); setMenuOpen(false); } }; window.addEventListener("keydown", onKeyDown); document.body.style.overflow = activeProduct || bagOpen || menuOpen ? "hidden" : ""; return () => { window.removeEventListener("keydown", onKeyDown); document.body.style.overflow = ""; }; }, [activeProduct, bagOpen, menuOpen]);
+  const openProduct = (product: Product) => { setActiveProduct(product); setView("front"); setSize("M"); setQuantity(1); };
+  const addToBag = (product: Product, selectedSize = size, selectedQuantity = quantity) => { setCart((current) => { const existing = current.find((item) => item.product.id === product.id && item.size === selectedSize); if (existing) return current.map((item) => item === existing ? { ...item, quantity: item.quantity + selectedQuantity } : item); return [...current, { product, size: selectedSize, quantity: selectedQuantity }]; }); setActiveProduct(null); setBagOpen(true); };
+  const updateQuantity = (index: number, next: number) => setCart((current) => next < 1 ? current.filter((_, itemIndex) => itemIndex !== index) : current.map((item, itemIndex) => itemIndex === index ? { ...item, quantity: next } : item));
 
   return <main>
     <div className="scroll-progress" aria-hidden="true"><span style={{ transform: `scaleX(${scrollProgress})` }} /></div>
     <div className="ticker"><span>WEAR THE SCENE — MADE IN INDIA — CREATOR-LED OBJECTS — </span><span>WEAR THE SCENE — MADE IN INDIA — CREATOR-LED OBJECTS — </span></div>
-    <header className={`nav${isScrolled ? " nav-scrolled" : ""}`}>
-      <button className="nav-action" onClick={() => setMenuOpen(true)}><Menu size={18}/> MENU</button>
-      <a className="wordmark" href="#top">WE<span>●</span>DRIP</a>
-      <div className="nav-right"><button aria-label="Search"><Search size={19}/></button><button><ShoppingBag size={19}/> BAG [{cart}]</button></div>
-    </header>
+    <header className={`nav${isScrolled ? " nav-scrolled" : ""}`}><button className="nav-action" onClick={() => setMenuOpen(true)}><Menu size={18}/> <span>MENU</span></button><a className="wordmark" href="#top">WE<span>●</span>DRIP</a><div className="nav-right"><button aria-label="Search"><Search size={19}/></button><button className="bag-trigger" onClick={() => setBagOpen(true)}><ShoppingBag size={19}/> BAG <span>[{itemCount}]</span></button></div></header>
     {menuOpen && <div className="menu-panel"><button className="close" onClick={() => setMenuOpen(false)}><X/> CLOSE</button><nav><a href="#drop" onClick={() => setMenuOpen(false)}>NEW DROP</a><a href="#objects" onClick={() => setMenuOpen(false)}>OBJECTS</a><a href="#manifesto" onClick={() => setMenuOpen(false)}>ABOUT WEDRIP</a></nav><p>CHENNAI / INDIA<br/>EST. 2026</p></div>}
     <section className="hero" id="top"><img src="/images/wedrip-hero.png" alt="WeDrip campaign featuring two models in oversized streetwear"/><div className="hero-shade"/><div className="hero-copy"><p>DROP 001 / THE THIRD SPACE</p><h1>NOT MERCH.<br/><em>A PIECE OF THE WORLD.</em></h1><a href="#objects">ENTER THE DROP <ArrowDown size={18}/></a></div><p className="vertical-note">CHENNAI — 13.0827° N, 80.2707° E</p></section>
     <section className="statement reveal" data-reveal id="manifesto"><p className="eyebrow">WE ARE WEDRIP / 001</p><h2>Creators build worlds.<br/>We make them <i>wearable.</i></h2><div className="statement-foot"><p>Limited objects made with people who shape culture.<br/>Designed with intent. Made to outlive the feed.</p><span>NO BLANKS. NO LOGO SLAPS.<br/>EVERY DROP HAS A REASON.</span></div></section>
-    <section className="collection reveal" data-reveal id="objects"><div className="collection-head"><h2>THE OBJECTS</h2><div><span>DROP 001</span><span>VIEW [4]</span></div></div><div className="product-grid">{products.map((p,i)=><article className="product" key={p[0]}><div className={`product-image ${p[3]}`}><img src={p[2]} alt={p[0]}/><span>0{i+1}</span><button onClick={()=>setCart(cart+1)} aria-label={`Add ${p[0]} to bag`}><Plus/></button></div><div className="product-meta"><div><h3>{p[0]}</h3><p>240 GSM / LIMITED RUN</p></div><strong>{p[1]}</strong></div></article>)}</div></section>
+    <section className="collection reveal" data-reveal id="objects"><div className="collection-head"><div><p className="eyebrow">DROP 001 / NOW LIVE</p><h2>THE OBJECTS</h2></div><div className="collection-meta"><span>4 PIECES</span><span>MADE TO ORDER</span></div></div><div className="product-grid">{products.map((product, index) => <article className="product" key={product.id}><button className={`product-image ${product.tone}`} onClick={() => openProduct(product)} aria-label={`View ${product.name}`}><img src={product.image} alt={product.name}/><span>0{index + 1}</span><span className="view-label">VIEW PIECE <ArrowRight size={14}/></span></button><div className="product-meta"><div><h3>{product.name}</h3><p>{product.material}</p></div><strong>{money(product.price)}</strong></div></article>)}</div></section>
+    <section className="shop-note reveal" data-reveal><div><p className="eyebrow">THE WEDRIP STANDARD</p><h2>Good clothes should<br/><i>stay with you.</i></h2></div><div className="shop-note-grid"><p><b>01 / SLOW RUNS</b><br/>Small batches, no artificial urgency. We make what we can stand behind.</p><p><b>02 / CONSIDERED FIT</b><br/>Relaxed proportions designed to work across bodies, seasons and scenes.</p><p><b>03 / INDIA, ALWAYS</b><br/>Designed in Chennai. Made with partners we know by name.</p></div></section>
     <section className="drop reveal" data-reveal id="drop"><div><p>NEXT TRANSMISSION / 09.26</p><h2>YOUR FAVOURITE CREATOR’S<br/><i>NEXT WORLD</i> STARTS HERE.</h2></div><a href="mailto:hello@wedrip.in">BUILD WITH WEDRIP ↗</a></section>
     <footer><a className="footer-logo" href="#top">WE<span>●</span>DRIP</a><div><p>Objects, uniforms and wearable worlds<br/>built with independent creators.</p><p>CHENNAI, INDIA<br/>HELLO@WEDRIP.IN</p><p>INSTAGRAM ↗<br/>SHIPPING & RETURNS</p></div><small>© 2026 WEDRIP STUDIO — ALL RIGHTS RESERVED</small></footer>
+
+    {activeProduct && <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setActiveProduct(null)}><section className="product-modal" role="dialog" aria-modal="true" aria-label={`${activeProduct.name} details`}><button className="modal-close" onClick={() => setActiveProduct(null)} aria-label="Close product details"><X size={20}/></button><div className="modal-gallery"><div className={`modal-image ${activeProduct.tone}`}><img src={activeProduct.image} alt={`${activeProduct.name} ${view} view`}/><span className="image-view-caption">{view === "front" ? "FRONT VIEW" : "BACK VIEW"}</span></div><div className="view-switcher"><button className={view === "front" ? "active" : ""} onClick={() => setView("front")}>01 / FRONT</button><button className={view === "back" ? "active" : ""} onClick={() => setView("back")}>02 / BACK</button></div></div><div className="modal-info"><p className="eyebrow">DROP 001 / {activeProduct.type.toUpperCase()}</p><h2>{activeProduct.name}</h2><p className="modal-price">{money(activeProduct.price)}</p><p className="modal-detail">{activeProduct.detail}</p><p className="modal-material">{activeProduct.material}</p><div className="form-row"><div><label>SELECT SIZE</label><div className="size-options">{sizes.map((item) => <button key={item} className={size === item ? "selected" : ""} onClick={() => setSize(item)}>{item}</button>)}</div></div><a href="#size-guide" className="size-guide">SIZE GUIDE ↗</a></div><div className="quantity-row"><label>QUANTITY</label><div className="quantity-control"><button onClick={() => setQuantity(Math.max(1, quantity - 1))} aria-label="Decrease quantity"><Minus size={15}/></button><span>{quantity}</span><button onClick={() => setQuantity(quantity + 1)} aria-label="Increase quantity"><Plus size={15}/></button></div></div><button className="add-to-bag" onClick={() => addToBag(activeProduct)}><span>ADD TO BAG</span><span>{money(activeProduct.price * quantity)} <ArrowRight size={17}/></span></button><p className="modal-footnote"><Check size={14}/> Ships from Chennai in 3–5 working days</p></div></section></div>}
+    {bagOpen && <div className="drawer-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setBagOpen(false)}><aside className="bag-drawer" aria-label="Shopping bag"><div className="drawer-head"><div><p className="eyebrow">YOUR EDIT / {itemCount} {itemCount === 1 ? "PIECE" : "PIECES"}</p><h2>THE BAG</h2></div><button className="modal-close" onClick={() => setBagOpen(false)} aria-label="Close bag"><X size={20}/></button></div>{cart.length === 0 ? <div className="bag-empty"><ShoppingBag size={30}/><h3>Your bag is quiet.</h3><p>Start with something made to stay.</p><button onClick={() => { setBagOpen(false); document.getElementById("objects")?.scrollIntoView({ behavior: "smooth" }); }}>EXPLORE THE OBJECTS <ArrowRight size={15}/></button></div> : <><div className="bag-items">{cart.map((item, index) => <div className="bag-item" key={`${item.product.id}-${item.size}`}><div className={`bag-thumb ${item.product.tone}`}><img src={item.product.image} alt=""/></div><div className="bag-item-info"><h3>{item.product.name}</h3><p>SIZE {item.size} · {money(item.product.price)}</p><div className="bag-item-bottom"><div className="quantity-control"><button onClick={() => updateQuantity(index, item.quantity - 1)} aria-label="Decrease quantity"><Minus size={13}/></button><span>{item.quantity}</span><button onClick={() => updateQuantity(index, item.quantity + 1)} aria-label="Increase quantity"><Plus size={13}/></button></div><strong>{money(item.product.price * item.quantity)}</strong></div></div></div>)}</div><div className="bag-summary"><div><span>SUBTOTAL</span><strong>{money(subtotal)}</strong></div><p>Shipping calculated at checkout. Free shipping on orders over ₹5,000.</p><button className="checkout-button">CHECKOUT <ArrowRight size={17}/></button><button className="continue-button" onClick={() => setBagOpen(false)}>CONTINUE SHOPPING</button></div></>}</aside></div>}
   </main>;
 }
