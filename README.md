@@ -109,5 +109,11 @@ The timeout defaults can be overridden for a controlled canary with `SITES_INSTA
 
 ## Learn More
 
+## Commerce architecture decision
+
+Shopify is the planned system of record for production commerce. Shopify will own products, variants, inventory, customer identity, carts, checkout, orders, payments, shipping, and taxes. WeDrip will own the editorial storefront, search presentation, visual product experience, and brand-world content. The current app has no Shopify credentials or live API connection, so catalog, bag, wishlist, and account data are prototype/frontend-only except for the existing server-side ChatGPT identity gate.
+
+The intended guest flow is: local guest cart id → Shopify customer login → server-side cart merge → Shopify checkout. Prices, inventory, and totals must be revalidated by Shopify; the browser is never a source of truth. Checkout is deliberately marked pending integration and no payment success is simulated.
+
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)

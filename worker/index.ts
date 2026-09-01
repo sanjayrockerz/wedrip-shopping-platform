@@ -2,8 +2,10 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 
+type AssetFetcher = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
+
 interface Env {
-  ASSETS: Fetcher;
+  ASSETS: AssetFetcher;
   DB: D1Database;
   IMAGES: {
     input(stream: ReadableStream): {

@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { chatGPTSignInPath } from "@/app/chatgpt-auth";
+export default function LoginPage() { return <main className="auth-page"><Link href="/" className="account-wordmark">WE<span>●</span>DRIP</Link><p className="eyebrow">CUSTOMER ACCOUNT</p><h1>ENTER<br/><i>the scene.</i></h1><p>WeDrip uses secure workspace authentication for account access. No password is stored by this storefront.</p><a className="auth-button" href={chatGPTSignInPath("/account")}>SIGN IN WITH CHATGPT →</a><small>Need an account? Authentication provider enrollment is required before customer sign-up can be enabled.</small></main>; }
