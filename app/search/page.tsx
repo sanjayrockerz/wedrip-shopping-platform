@@ -1,3 +1,4 @@
-import { SearchInterface } from "@/components/search-interface";
-export const metadata = { title: "Search — WeDrip", description: "Search WeDrip products and collections." };
-export default function SearchPage() { return <SearchInterface />; }
+import Link from "next/link";
+import Image from "next/image";
+import { getFeaturedProducts, formatPrice } from "@/lib/products";
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) { const { q = "" } = await searchParams; const { products } = await getFeaturedProducts(); const results = products.filter((product) => `${product.name} ${product.productType}`.toLowerCase().includes(q.toLowerCase())); return <main className="collection-archive"><header className="detail-header"><Link href="/">← WEDRIP</Link><Link href="/bag">BAG</Link></header><section className="archive-intro"><p className="eyebrow">SEARCH THE OBJECTS</p><h1>{q ? `RESULTS FOR “${q}”` : "FIND THE OBJECTS."}</h1></section><div className="search-results">{results.map((product) => <Link href={`/products/${product.slug}`} key={product.id}><Image src={product.primaryImageUrl} alt={product.imageAlt} width={200} height={200} /><span><b>{product.name}</b><small>{product.productType}</small></span><strong>{formatPrice(product.pricePaise)}</strong></Link>)}</div>{!results.length && <p className="account-empty">No matching products found.</p>}</main>; }

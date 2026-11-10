@@ -1,0 +1,2 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+export async function recordAudit(client: SupabaseClient, actorUserId: string, action: string, entityType: string, entityId: string | null, metadata: Record<string, unknown> = {}) { const { error } = await client.from("audit_logs").insert({ actor_user_id: actorUserId, action, entity_type: entityType, entity_id: entityId, metadata }); if (error) console.error("[audit] failed", error.message); }

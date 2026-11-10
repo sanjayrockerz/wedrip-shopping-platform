@@ -1,0 +1,11 @@
+alter table public.profiles add column if not exists first_name text;
+alter table public.profiles add column if not exists last_name text;
+alter table public.addresses add column if not exists address_line_1 text;
+alter table public.addresses add column if not exists address_line_2 text;
+create table if not exists public.wishlists (id uuid primary key default gen_random_uuid(), user_id uuid unique not null references auth.users(id) on delete cascade, created_at timestamptz not null default now());
+create table if not exists public.wishlist_items (wishlist_id uuid not null references public.wishlists(id) on delete cascade, product_id uuid not null references public.products(id) on delete cascade, created_at timestamptz not null default now(), primary key (wishlist_id, product_id));
+alter table public.wishlists enable row level security; alter table public.wishlist_items enable row level security;
+drop policy if exists "Users manage own wishlist" on public.wishlists; create policy "Users manage own wishlist" on public.wishlists for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "Users manage own wishlist items" on public.wishlist_items; create policy "Users manage own wishlist items" on public.wishlist_items for all using (exists (select 1 from public.wishlists where wishlists.id = wishlist_items.wishlist_id and wishlists.user_id = auth.uid())) with check (exists (select 1 from public.wishlists where wishlists.id = wishlist_items.wishlist_id and wishlists.user_id = auth.uid()));
+create or replace function public.set_default_address() returns trigger language plpgsql security invoker as $$ begin if new.is_default then update public.addresses set is_default = false where user_id = new.user_id and id <> new.id; end if; return new; end; $$;
+drop trigger if exists addresses_one_default on public.addresses; create trigger addresses_one_default before insert or update of is_default on public.addresses for each row execute function public.set_default_address();

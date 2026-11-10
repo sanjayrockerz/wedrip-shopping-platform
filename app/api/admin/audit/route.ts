@@ -1,0 +1,3 @@
+import { NextRequest } from "next/server";
+import { requireAdmin } from "@/lib/admin";
+export async function GET(request: NextRequest) { const auth = await requireAdmin(request, ["SUPER_ADMIN", "ADMIN"]); if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status }); const url = new URL(request.url); let query = auth.client.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(200); const type = url.searchParams.get("entity_type"); if (type) query = query.eq("entity_type", type); const { data, error } = await query; if (error) return Response.json({ error: error.message }, { status: 400 }); return Response.json({ logs: data ?? [] }); }

@@ -1,0 +1,3 @@
+import { NextRequest } from "next/server";
+import { requireAdmin } from "@/lib/admin";
+export async function GET(request: NextRequest) { const auth = await requireAdmin(request, ["SUPER_ADMIN", "ADMIN", "ORDER_MANAGER"]); if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status }); const { data, error } = await auth.client.from("profiles").select("id,first_name,last_name,phone,created_at,orders(id,total_paise,status),designs(id,status)").order("created_at", { ascending: false }); if (error) return Response.json({ error: error.message }, { status: 400 }); return Response.json({ customers: data ?? [] }); }

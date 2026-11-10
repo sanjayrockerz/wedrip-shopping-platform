@@ -1,0 +1,2 @@
+import Link from "next/link"; import { AuthForm } from "@/components/auth-form";
+export default function Signup() { return <main className="account-page"><Link className="account-wordmark" href="/">WE<span>O</span>DRIP</Link><p className="eyebrow">CUSTOMER ACCOUNT</p><h1>Make it<br /><i>yours.</i></h1><AuthForm mode="signup" /><p className="account-switch">Already have an account? <Link href="/login">Sign in</Link></p></main>; }
