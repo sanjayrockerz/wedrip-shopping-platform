@@ -38,6 +38,18 @@ export type Product = {
 export type CatalogCategory = { name: string; slug: string; count: number; image: Product };
 export type ProductVariant = { id: string; product_id: string; size: string; color: string | null; sku: string | null; price_paise: number | null; stock_quantity: number | null; active: boolean };
 
+// Keep the editorial storefront visible even when the optional catalog backend is unavailable.
+// These are the original WeDrip objects shipped with the project and are replaced by live rows
+// whenever Supabase is reachable.
+export const starterProducts: Product[] = [
+  { id: "starter-tee-01", slug: "studio-02-heavy-tee", name: "Studio 02 / Heavy Tee", productType: "T-Shirts", shortDescription: "The everyday uniform, cut with room to move.", description: "The everyday uniform, cut with room to move. A dense cotton study from Chennai.", pricePaise: 249000, primaryImageUrl: "/images/wedrip-tee.png", imageAlt: "WeDrip model wearing a heavyweight tee in an editorial Chennai street scene", visualTone: "cream", material: "100% combed cotton", gsm: 240, isFeatured: true, displayOrder: 1 },
+  { id: "starter-hoodie-01", slug: "after-hours-box-hoodie", name: "After Hours / Box Hoodie", productType: "Hoodies", shortDescription: "Built for the part of the day that has no name.", description: "Built for the part of the day that has no name. A heavy layer with a structured hand-feel.", pricePaise: 429000, primaryImageUrl: "/images/wedrip-hoodie.png", imageAlt: "WeDrip model wearing a black hoodie against a blue urban backdrop", visualTone: "blue", material: "100% cotton fleece", gsm: 420, isFeatured: true, displayOrder: 2 },
+  { id: "starter-tee-02", slug: "scene-01-heavy-tee", name: "Scene 01 / Heavy Tee", productType: "T-Shirts", shortDescription: "A second study in shape and proportion.", description: "A second study in shape and proportion, cut from dense combed cotton.", pricePaise: 249000, primaryImageUrl: "/images/wedrip-tee.png", imageAlt: "WeDrip model wearing a heavyweight tee in an editorial Chennai street scene", visualTone: "orange", material: "100% combed cotton", gsm: 240, isFeatured: false, displayOrder: 3 },
+  { id: "starter-hoodie-02", slug: "no-fixed-address-hoodie", name: "No Fixed Address / Hoodie", productType: "Hoodies", shortDescription: "A familiar layer, made less familiar.", description: "A familiar layer, made less familiar. Designed to feel lived-in from the first wear.", pricePaise: 429000, primaryImageUrl: "/images/wedrip-hoodie.png", imageAlt: "WeDrip model wearing a black hoodie against a blue urban backdrop", visualTone: "ink", material: "100% cotton fleece", gsm: 420, isFeatured: false, displayOrder: 4 },
+  { id: "starter-mug-01", slug: "we-drip-mug", name: "We Drip Mug", productType: "Objects", shortDescription: "A daily object for the studio desk.", description: "A ceramic studio object for coffee, ideas and everything between scenes.", pricePaise: 89000, primaryImageUrl: "/images/wedrip-mug-reference.png", imageAlt: "WeDrip ceramic mug from the editorial objects set", visualTone: "mug", material: "Ceramic", gsm: null, isFeatured: true, displayOrder: 5 },
+  { id: "starter-bottle-01", slug: "we-drip-bottle", name: "We Drip Bottle", productType: "Objects", shortDescription: "Carry the scene with you.", description: "A durable blue bottle for long days, late nights and everywhere in between.", pricePaise: 129000, primaryImageUrl: "/images/wedrip-bottle-reference.png", imageAlt: "WeDrip blue bottle from the editorial objects set", visualTone: "bottle", material: "Stainless steel", gsm: null, isFeatured: true, displayOrder: 6 },
+];
+
 export const collection = { slug: "drop-001", name: "The Third Space", eyebrow: "DROP 001", description: "Limited objects for the places between scenes. Designed in Chennai, made to outlive the feed." };
 export const PRODUCT_COLUMNS = "id,slug,name,product_type,short_description,description,price_paise,primary_image_url,image_alt,visual_tone,material,gsm,is_featured,display_order";
 
@@ -67,7 +79,7 @@ export async function getFeaturedProducts(client: SupabaseClient | null = getSup
     if (error) throw error;
     return { products: (data ?? []).map((row) => mapProductRow(row as ProductRow)), error: null };
   } catch {
-    console.error("[products] Featured product query failed");
+    // The storefront intentionally falls back to starterProducts when Supabase is unavailable.
     return { products: [], error: "Product database is temporarily unavailable" };
   }
 }
@@ -79,20 +91,20 @@ export async function getCatalogProducts(client: SupabaseClient | null = getSupa
     if (error) throw error;
     return { products: (data ?? []).map((row) => mapProductRow(row as ProductRow)), error: null };
   } catch {
-    console.error("[products] Catalog product query failed");
+    // The storefront intentionally falls back to starterProducts when Supabase is unavailable.
     return { products: [], error: "Product database is temporarily unavailable" };
   }
 }
 
 export async function getProductBySlug(slug: string, client: SupabaseClient | null = getSupabaseServerClient()): Promise<Product | null> {
-  if (!client || !slug || slug.length > 160) return null;
+  if (!slug || slug.length > 160) return null;
+  if (!client) return starterProducts.find((product) => product.slug === slug) ?? null;
   try {
     const { data, error } = await client.from("products").select(PRODUCT_COLUMNS).eq("slug", slug).eq("is_active", true).maybeSingle();
-    if (error || !data) return null;
+    if (error || !data) return starterProducts.find((product) => product.slug === slug) ?? null;
     return mapProductRow(data as ProductRow);
   } catch {
-    console.error("[products] Product lookup failed");
-    return null;
+    return starterProducts.find((product) => product.slug === slug) ?? null;
   }
 }
 

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { formatPrice } from "@/lib/products";
+import { formatPrice } from "@/lib/format";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { DesignWorkspace } from "@/components/design-workspace";

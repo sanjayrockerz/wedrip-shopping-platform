@@ -1,0 +1,6 @@
+import { NextRequest } from "next/server";
+import { getAuthedSupabase } from "@/lib/supabase/request";
+import { apiErrorResponse } from "@/lib/http";
+async function admin(request: NextRequest) { const auth = await getAuthedSupabase(request); if ("error" in auth) return auth; const { data, error } = await auth.client.rpc("user_can_verify_payments"); if (error || data !== true) return { error: "Forbidden", status: 403 as const }; return auth; }
+export async function GET(request: NextRequest) { const auth = await admin(request); if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status }); const status = request.nextUrl.searchParams.get("status") ?? "SUBMITTED"; const { data, error } = await auth.client.from("payment_submissions").select("id,checkout_id,claimed_payer_name,claimed_payer_vpa,claimed_utr,status,submitted_at,checkouts(checkout_reference,customer_id,final_amount_paise,expires_at,delivery_address_snapshot,checkout_items(product_name,selected_size,quantity,line_total_paise))").eq("status", status).order("submitted_at", { ascending: true }).range(0, 99); if (error) return apiErrorResponse(error, "Payment queue could not be loaded."); return Response.json({ submissions: data ?? [] }, { headers: { "Cache-Control": "no-store" } }); }
+export { admin as requirePaymentAdmin };

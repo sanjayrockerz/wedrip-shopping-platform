@@ -1,0 +1,3 @@
+import QRCode from "qrcode";
+import { getPaymentConfig, buildUpiUri } from "@/lib/payment-config";
+export async function GET(request: Request) { const config = getPaymentConfig(); const url = new URL(request.url); const amount = Number(url.searchParams.get("amount") ?? 0); const reference = url.searchParams.get("reference") ?? ""; const uri = config.enabled && Number.isSafeInteger(amount) && amount > 0 && reference ? buildUpiUri(amount, reference) : null; return Response.json({ enabled: config.enabled, merchant_name: config.enabled ? config.merchantName : null, vpa: config.enabled ? config.vpa : null, upi_uri: uri, qr_data_url: uri ? await QRCode.toDataURL(uri, { margin: 2, width: 280 }) : null }, { headers: { "Cache-Control": "no-store" } }); }

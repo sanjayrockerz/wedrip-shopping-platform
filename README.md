@@ -1,4 +1,8 @@
-# vinext-starter
+# WeDrip application
+
+The current `dev`, `build`, and `start` scripts run Next.js App Router. Existing account and commerce routes use Supabase Auth and PostgreSQL. See `.env.example` for configuration names and `docs/architecture/` for the security review. Use separate, verified staging resources for tests; do not use production customer data.
+
+The material below describes retained Vinext/Cloudflare starter and historical Shopify plans. It is not evidence that Shopify is connected or the current production system of record. The actual Vercel deployment configuration and live Supabase project separation have not been verified.
 
 A clean full-stack starter running on
 [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and

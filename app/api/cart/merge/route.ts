@@ -1,4 +1,23 @@
 import { NextRequest } from "next/server";
 import { getAuthedSupabase } from "@/lib/supabase/request";
-import { jsonError, validateVariant } from "@/lib/commerce";
-export async function POST(request: NextRequest) { const auth = await getAuthedSupabase(request); if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status }); try { const body = await request.json(); const items = Array.isArray(body.items) ? body.items : []; const { data: cart, error } = await auth.client.from("carts").upsert({ user_id: auth.user.id }, { onConflict: "user_id" }).select("id").single(); if (error) throw error; for (const raw of items) { const productId = String(raw.product_id ?? raw.id ?? ""); const variantId = String(raw.variant_id ?? ""); const quantity = Number(raw.quantity); const v = await validateVariant(auth.client, productId, variantId, quantity); const { data: existing } = await auth.client.from("cart_items").select("id,quantity").eq("cart_id", cart.id).eq("variant_id", variantId).maybeSingle(); const next = (existing?.quantity ?? 0) + quantity; if (next > (v.stock_quantity ?? 0)) throw new Error("A guest cart item exceeds available stock."); const result = existing ? await auth.client.from("cart_items").update({ quantity: next }).eq("id", existing.id) : await auth.client.from("cart_items").insert({ cart_id: cart.id, product_id: productId, variant_id: variantId, quantity }); if (result.error) throw result.error; } return Response.json({ ok: true }); } catch (error) { return jsonError(error); } }
+import { mergeCartItems } from "@/lib/cart-merge";
+import { readBoundedJson, validateMergeBody } from "@/lib/cart-merge-validation";
+import { apiErrorResponse } from "@/lib/http";
+
+export async function POST(request: NextRequest) {
+  const auth = await getAuthedSupabase(request);
+  if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status });
+  let items;
+  try {
+    items = validateMergeBody(await readBoundedJson(request));
+  } catch {
+    items = null;
+  }
+  if (!items) return Response.json({ error: "Invalid bag items or request size." }, { status: 400 });
+  try {
+    await mergeCartItems(auth.client, auth.user.id, items);
+    return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return apiErrorResponse(error, "Unable to merge your bag.");
+  }
+}

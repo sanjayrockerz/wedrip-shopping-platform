@@ -1,3 +1,19 @@
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/admin";
-export async function GET(request: NextRequest) { const auth = await requireAdmin(request); if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status }); const start = new Date(); start.setHours(0, 0, 0, 0); const week = new Date(); week.setDate(week.getDate() - 7); const [today, weekOrders, pendingDesigns, lowStock, failedNotifications] = await Promise.all([auth.client.from("orders").select("id,total_paise,payment_status", { count: "exact", head: false }).gte("created_at", start.toISOString()), auth.client.from("orders").select("id,status", { count: "exact", head: true }).gte("created_at", week.toISOString()).not("status", "in", "(DELIVERED,CANCELLED,REFUNDED)"), auth.client.from("designs").select("id", { count: "exact", head: true }).in("status", ["UPLOADED", "IN_REVIEW"]), auth.client.from("product_variants").select("id", { count: "exact", head: true }).not("stock_quantity", "is", null).lte("stock_quantity", 5), auth.client.from("notification_events").select("id", { count: "exact", head: true }).eq("status", "FAILED")]); const paidToday = (today.data ?? []).filter((order: any) => order.payment_status === "PAID").reduce((sum: number, order: any) => sum + order.total_paise, 0); return Response.json({ metrics: { orders_today: today.count ?? 0, revenue_today_paise: paidToday, pending_orders: weekOrders.count ?? 0, designs_awaiting_review: pendingDesigns.count ?? 0, low_stock_variants: lowStock.count ?? 0, failed_notifications: failedNotifications.count ?? 0 } }); }
+import { apiErrorResponse, PublicApiError } from "@/lib/http";
+import { getBusinessWeekBounds } from "@/lib/reporting-period";
+
+export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request, ["SUPER_ADMIN", "ADMIN"]);
+  if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status, headers: { "Cache-Control": "private, no-store" } });
+  try {
+    const week = getBusinessWeekBounds();
+    const { data: report, error } = await auth.client.rpc("get_admin_reporting_summary", { p_week_start: week.start, p_week_end: week.end });
+    if (error) throw new PublicApiError("Reporting data is unavailable until the reporting migration is applied.", 503);
+    const [designs, lowStock] = await Promise.all([
+      auth.client.from("designs").select("id", { count: "exact", head: true }).in("status", ["UPLOADED", "IN_REVIEW"]),
+      auth.client.from("product_variants").select("id", { count: "exact", head: true }).not("stock_quantity", "is", null).lte("stock_quantity", 5),
+    ]);
+    return Response.json({ report, operational: { designs_awaiting_review: designs.count ?? 0, low_stock_variants: lowStock.count ?? 0 }, refresh: { requested_at: new Date().toISOString(), week }, }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) { return apiErrorResponse(error, "Dashboard data could not be loaded."); }
+}

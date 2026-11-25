@@ -1,0 +1,29 @@
+/* Keep the hero in normal flow and size its headline to its own column. */
+.editorial-hero { margin: 0 auto; min-width: 0; align-items: center; }
+.hero-copy { min-width: 0; container-type: inline-size; }
+.hero-gallery { min-width: 0; }
+.hero-copy h1 { font-size: clamp(2.4rem, 14cqw, 6.5rem); line-height: .92; letter-spacing: -.065em; white-space: normal; }
+.hero-copy h1 span { font-weight: 400; }
+.hero-copy h1 strong { white-space: nowrap; }
+.home-catalog { margin-top: 0; }
+@media (min-width: 901px) {
+  .editorial-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: clamp(1.5rem, 3vw, 3rem); padding: clamp(1rem, 2vh, 1.5rem) var(--gutter) clamp(2rem, 4vh, 3rem); }
+  .hero-gallery { height: auto; }
+  .hero-gallery figure { height: auto; aspect-ratio: .9; }
+}
+@media (max-width: 900px) {
+  .editorial-hero { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding-block: 1.5rem 3rem; }
+  .hero-copy h1 { font-size: clamp(2.4rem, 13cqw, 6.5rem); }
+  .hero-gallery { width: 100%; max-width: none; }
+  .home-catalog .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .hero-copy h1 { font-size: clamp(2.4rem, 12.5cqw, 5rem); }
+  .hero-copy .eyebrow { margin-bottom: 1.25rem; }
+  .hero-description { margin-block: 1.25rem; }
+  .hero-gallery figure { aspect-ratio: .85; }
+  .home-catalog .catalog-heading { flex-direction: row; align-items: center; }
+  .home-catalog .catalog-heading > a { margin: 0; align-self: center; }
+  .home-page .nav-right { gap: 0; }
+  .home-page .nav-right button, .home-page .nav-right a { min-width: 40px; min-height: 44px; }
+}
