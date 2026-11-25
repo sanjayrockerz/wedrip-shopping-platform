@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search, X, ArrowRight, UserRound, ShoppingBag } from "lucide-react";
 import type { Product } from "@/lib/products";
-import { formatPrice } from "@/lib/products";
+import { formatPrice } from "@/lib/format";
 
 export function SiteHeader({ products }: { products: Product[] }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -32,8 +32,10 @@ export function SiteHeader({ products }: { products: Product[] }) {
   return <>
     <header className="site-header">
       <Link className="wordmark" href="/" aria-label="WeDrip home">WE<span>O</span>DRIP</Link>
-      <div className="nav-right"><button onClick={() => setSearchOpen(true)} aria-label="Open product search"><Search size={18} /><span>SEARCH</span></button><Link href="/account" aria-label="Account"><UserRound size={18} /><span>ACCOUNT</span></Link><Link href="/bag" aria-label={`Bag, ${bagCount} items`}><ShoppingBag size={18} /><span>BAG [{bagCount}]</span></Link></div>
+      <nav className="nav-center" aria-label="Primary navigation"><Link href="/shop">SHOP</Link><Link href="/collections">OBJECTS</Link><a href="#about">ABOUT</a></nav>
+      <div className="nav-right"><button className="mobile-menu-button" style={{ display: "inline-flex" }} onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen}>MENU</button><button onClick={() => setSearchOpen(true)} aria-label="Open product search"><Search size={18} /><span>SEARCH</span></button><Link href="/account" aria-label="Account"><UserRound size={18} /><span>ACCOUNT</span></Link><Link href="/bag" aria-label={`Bag, ${bagCount} items`}><ShoppingBag size={18} /><span>BAG [{bagCount}]</span></Link></div>
     </header>
+    {menuOpen && <div className="overlay menu-panel" role="dialog" aria-modal="true" aria-label="Menu"><button className="overlay-close" onClick={closeAll} aria-label="Close menu"><X size={20} /> CLOSE</button><nav><Link href="/shop" onClick={closeAll}>SHOP</Link><Link href="/collections" onClick={closeAll}>OBJECTS</Link><a href="#about" onClick={closeAll}>ABOUT</a><Link href="/account" onClick={closeAll}>ACCOUNT</Link></nav></div>}
     {searchOpen && <div className="overlay search-panel" role="dialog" aria-modal="true" aria-label="Search products"><div className="search-head"><p className="eyebrow">SEARCH THE OBJECTS</p><button className="overlay-close" onClick={closeAll} aria-label="Close search"><X size={20} /> CLOSE</button></div><div className="search-input-wrap"><Search size={25} aria-hidden="true" /><input ref={inputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tee, hoodie..." aria-label="Search products" />{query && <button onClick={() => setQuery("")} aria-label="Clear search"><X size={18} /></button>}</div><p className="search-count" aria-live="polite">{results.length} {results.length === 1 ? "OBJECT" : "OBJECTS"}</p>{results.length ? <div className="search-results">{results.map((product) => <Link href={`/products/${product.slug}`} key={product.slug} onClick={closeAll}><Image src={product.primaryImageUrl} alt="" width={72} height={72} /><span><b>{product.name}</b><small>{product.productType}</small></span><strong>{formatPrice(product.pricePaise)}</strong><ArrowRight size={16} aria-hidden="true" /></Link>)}</div> : <div className="search-empty"><h2>Nothing <i>found.</i></h2><p>Try tee or hoodie.</p></div>}</div>}
   </>;
 }

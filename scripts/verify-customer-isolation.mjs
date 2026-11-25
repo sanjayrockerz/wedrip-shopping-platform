@@ -4,6 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 
 const env = {};
 for (const line of fs.readFileSync(".env", "utf8").split(/\r?\n/)) { const match = line.match(/^([A-Z0-9_]+)=(.*)$/); if (match) env[match[1]] = match[2].replace(/^"|"$/g, ""); }
+if (!(env.SUPABASE_ENV === "local" || env.SUPABASE_ENV === "staging") || env.SUPABASE_ALLOW_DESTRUCTIVE_TESTS !== "true") {
+  throw new Error("Refusing persistence/isolation test: set SUPABASE_ENV=local or staging and SUPABASE_ALLOW_DESTRUCTIVE_TESTS=true explicitly.");
+}
 const url = env.NEXT_PUBLIC_SUPABASE_URL;
 const publishable = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const secret = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;

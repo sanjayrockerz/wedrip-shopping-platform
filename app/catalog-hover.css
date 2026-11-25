@@ -1,0 +1,8 @@
+.catalog-media-wrap { position: relative; }
+.quick-sizes { position: absolute; z-index: 2; right: .75rem; bottom: .75rem; left: .75rem; display: grid; gap: .45rem; padding: .65rem; background: var(--acid); color: #0a0a0a; opacity: 0; transform: translateY(12px); pointer-events: none; transition: opacity .24s ease, transform .36s cubic-bezier(.2,.7,.2,1); }
+.quick-sizes > span { font: 700 var(--font-label) monospace; letter-spacing: .08em; }
+.quick-sizes > div { display: flex; gap: .35rem; }
+.quick-sizes b { min-width: 2.1rem; padding: .42rem .35rem; border: 1px solid #0a0a0a; text-align: center; font: 700 var(--font-label) monospace; }
+.catalog-card:hover .quick-sizes, .catalog-card:focus-within .quick-sizes { opacity: 1; transform: translateY(0); }
+@media (hover: none), (max-width: 700px) { .quick-sizes { position: relative; right: auto; bottom: auto; left: auto; opacity: 1; transform: none; pointer-events: auto; } }
+@media (prefers-reduced-motion: reduce) { .quick-sizes { transition: none; transform: none; } }

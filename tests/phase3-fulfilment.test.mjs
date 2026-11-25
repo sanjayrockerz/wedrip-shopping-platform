@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import { readdir, readFile } from "node:fs/promises";
+import test from "node:test";
+const root = new URL("../supabase/migrations/", import.meta.url);
+const names = (await readdir(root)).filter((name) => /^2026112500(15|16|17|18|19)00_/.test(name)).sort();
+const sql = (await Promise.all(names.map((name) => readFile(new URL(name, root), "utf8")))).join("\n");
+test("Phase 3 migrations are ordered and domain complete", () => assert.deepEqual(names, ["20261125001500_fulfilment_schema.sql", "20261125001600_fulfilment_rpc.sql", "20261125001700_notification_worker.sql", "20261125001800_order_confirmation_outbox.sql", "20261125001900_disable_legacy_order_rpc.sql"]));
+test("fulfilment requires verified payment and verified active shipper", () => { assert.match(sql, /payment_status <> 'PAID'/); assert.match(sql, /verified_payment_reference is null/); assert.match(sql, /contact_status <> 'VERIFIED'/); });
+test("lifecycle operations are locked and versioned", () => { assert.match(sql, /for update/); assert.match(sql, /lifecycle_version/); assert.match(sql, /p_expected_version/); assert.match(sql, /record_audit_event/); });
+test("cancellation suppresses preparation and records finance review", () => { assert.match(sql, /status='CANCELLED'/); assert.match(sql, /SHIPPER_ORDER_PREPARE_EMAIL/); assert.match(sql, /finance_review_required/); });
+test("outbox claims are concurrency-safe and bounded", () => { assert.match(sql, /skip locked/i); assert.match(sql, /attempt_count/); assert.match(sql, /TERMINALLY_FAILED/); assert.match(sql, /claim_notification_outbox/); });
+test("outbox retry has an authenticated update grant and confirmation trigger", () => { assert.match(sql, /grant select, update on public\.notification_outbox to authenticated/); assert.match(sql, /enqueue_buyer_order_confirmation/); });
+test("provider delivery is disabled by default and secrets stay server-side", async () => { const source = await readFile(new URL("../lib/fulfilment-notifications.ts", import.meta.url), "utf8"); const worker = await readFile(new URL("../app/api/internal/notifications/process/route.ts", import.meta.url), "utf8"); assert.match(source, /WEDRIP_FULFILMENT_NOTIFICATIONS_ENABLED/); assert.match(worker, /WEDRIP_NOTIFICATION_WORKER_SECRET/); assert.doesNotMatch(source, /NEXT_PUBLIC/); });
+test("legacy order creation cannot bypass manual payment verification", async () => { const source = await readFile(new URL("../app/api/orders/route.ts", import.meta.url), "utf8"); assert.match(source, /status: 410/); assert.doesNotMatch(source, /create_order_from_cart/); assert.match(sql, /revoke execute on function public\.create_order_from_cart\(uuid, text\) from authenticated/); });
