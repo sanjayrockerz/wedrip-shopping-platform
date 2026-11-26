@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 export function AuthForm({ mode, returnTo = "/" }: { mode: "login" | "signup" | "forgot"; returnTo?: string }) {
   const [firstName, setFirstName] = useState("");
@@ -30,14 +31,26 @@ export function AuthForm({ mode, returnTo = "/" }: { mode: "login" | "signup" | 
       setMessage(result.error.message.replace("Invalid login credentials", "Email or password is incorrect."));
       return;
     }
-    if (mode === "signup") { setMessage("Check your inbox to verify your email."); return; }
+
     if (mode === "forgot") { setMessage("If that email exists, a reset link is on its way."); return; }
 
-    const token = (await supabaseBrowserClient.auth.getSession()).data.session?.access_token;
+    // Supabase returns a session immediately when email confirmations are disabled
+    // (the local/test-friendly configuration). In that mode, continue through the
+    // same onboarding path as a normal login instead of incorrectly asking the
+    // customer to check an inbox.
+    const session = "session" in result.data ? (result.data as { session: Session | null }).session : null;
+    const immediateToken = session?.access_token;
+    const token = immediateToken ?? (await supabaseBrowserClient.auth.getSession()).data.session?.access_token;
+    if (mode === "signup" && !token) {
+      setMessage("Check your inbox to verify your email, then sign in here.");
+      return;
+    }
+
     const guest = localStorage.getItem("wedrip-bag");
     if (token && guest) {
       try {
-        const response = await fetch("/api/cart/merge", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ items: JSON.parse(guest) }) });
+        const items = JSON.parse(guest).map((item: Record<string, unknown>) => item.variant_id?.toString().startsWith("local-") ? { ...item, variant_id: undefined } : item);
+        const response = await fetch("/api/cart/merge", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ items }) });
         if (response.ok) localStorage.removeItem("wedrip-bag");
         else setMessage("Signed in, but your bag could not be synced. It is still saved on this device.");
       } catch { setMessage("Signed in, but your bag could not be synced. It is still saved on this device."); }

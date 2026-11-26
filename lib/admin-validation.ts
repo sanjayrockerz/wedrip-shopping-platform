@@ -20,7 +20,7 @@ export const shipperInput = z.object({
   name: z.string().trim().min(2).max(120),
   company: z.string().trim().max(120).nullable().optional(),
   email: z.string().trim().email().max(254).nullable().optional(),
-  whatsapp_number: z.string().trim().max(32).nullable().optional(),
+  whatsapp_number: z.string().trim().regex(/^\+[1-9]\d{7,14}$/, "WhatsApp number must use international format, for example +919994981576.").nullable().optional(),
   contact_status: z.enum(["UNVERIFIED", "PENDING_TEST", "VERIFIED", "FAILED"]).default("UNVERIFIED"),
   is_active: z.boolean().default(true),
   is_default: z.boolean().default(false),

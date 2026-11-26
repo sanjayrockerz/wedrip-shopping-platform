@@ -20,6 +20,10 @@ test("combines duplicate lines and rejects conflicting product IDs and excessive
   assert.equal(validateMergeBody({ items: [item, { ...item, quantity: 19 }] }), null);
   assert.equal(validateMergeBody({ items: [item, { ...item, product_id: "00000000-0000-4000-8000-000000000003" }] }), null);
 });
+test("accepts legacy local variant lines when product and size are present", () => {
+  const legacy = { product_id: item.product_id, size: "M", quantity: 1 };
+  assert.deepEqual(validateMergeBody({ items: [legacy] }), [{ productId: item.product_id, variantId: "", size: "M", quantity: 1 }]);
+});
 test("rejects oversized request streams even without content-length", async () => {
   const stream = new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array(MAX_MERGE_BYTES + 1)); controller.close(); } });
   await assert.rejects(() => readBoundedJson(new Request("http://localhost/", { method: "POST", body: stream, duplex: "half" })));

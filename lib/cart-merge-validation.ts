@@ -2,18 +2,19 @@ import { z } from "zod";
 
 export const MAX_MERGE_BYTES = 16 * 1024;
 export const MAX_MERGE_LINES = 50;
-const line = z.object({ product_id: z.string().uuid().optional(), id: z.string().uuid().optional(), variant_id: z.string().uuid(), quantity: z.number().int().min(1).max(20) }).refine((item) => Boolean(item.product_id || item.id));
+const line = z.object({ product_id: z.string().uuid().optional(), id: z.string().uuid().optional(), variant_id: z.string().uuid().optional(), size: z.string().trim().min(1).max(80).optional(), quantity: z.number().int().min(1).max(20) }).refine((item) => Boolean(item.product_id || item.id)).refine((item) => Boolean(item.variant_id || item.size));
 const bodySchema = z.object({ items: z.array(line).max(MAX_MERGE_LINES) });
 
 export function validateMergeBody(value: unknown) {
   const result = bodySchema.safeParse(value);
   if (!result.success) return null;
-  const unique = new Map<string, { productId: string; variantId: string; quantity: number }>();
+  const unique = new Map<string, { productId: string; variantId: string; size?: string; quantity: number }>();
   for (const item of result.data.items) {
     const productId = item.product_id ?? item.id!;
-    const previous = unique.get(item.variant_id);
+    const key = item.variant_id ?? `${productId}:${item.size}`;
+    const previous = unique.get(key);
     if (previous && (previous.productId !== productId || previous.quantity + item.quantity > 20)) return null;
-    unique.set(item.variant_id, { productId, variantId: item.variant_id, quantity: (previous?.quantity ?? 0) + item.quantity });
+    unique.set(key, { productId, variantId: item.variant_id ?? "", size: item.size, quantity: (previous?.quantity ?? 0) + item.quantity });
   }
   return [...unique.values()];
 }

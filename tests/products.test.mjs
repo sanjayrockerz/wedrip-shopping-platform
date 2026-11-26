@@ -10,7 +10,7 @@ const { getProductHref } = await vite.ssrLoadModule("/components/product-card.ts
 
 after(async () => vite.close());
 
-const row = (overrides = {}) => ({ id: "00000000-0000-4000-8000-000000000001", slug: "scene-01-heavy-tee", name: "Scene 01 / Heavy Tee", product_type: "T-Shirts", short_description: "The everyday uniform.", description: "A dense cotton study from Chennai.", price_paise: 249000, primary_image_url: "/images/wedrip-tee.png", image_alt: "WeDrip model wearing a heavyweight tee", visual_tone: "cream", material: "100% combed cotton", gsm: 240, is_featured: true, display_order: 1, ...overrides });
+const row = (overrides = {}) => ({ id: "00000000-0000-4000-8000-000000000001", slug: "scene-01-heavy-tee", name: "Form Heavy Tee", product_type: "T-Shirts", short_description: "The everyday uniform.", description: "A dense cotton study from Chennai.", price_paise: 249000, primary_image_url: "/images/wedrip-tee.png", image_alt: "WeDrip model wearing a heavyweight tee", visual_tone: "cream", material: "100% combed cotton", gsm: 240, is_featured: true, display_order: 1, ...overrides });
 
 function fakeSupabase({ data = [], error = null } = {}) {
   const calls = [];

@@ -8,7 +8,11 @@ const phaseNames = names.filter((name) => /^202611250/.test(name)).sort();
 const sources = await Promise.all(phaseNames.map(async (name) => [name, await readFile(new URL(name, root), "utf8")]));
 
 test("Phase 1-5 migration inventory is chronological and complete", () => {
-  assert.deepEqual(phaseNames.at(-1), "20261125002200_fulfilment_lint_cleanup.sql");
+  assert.deepEqual(phaseNames.at(-1), "20261125002600_first_admin_lint_cleanup.sql");
+  assert.ok(phaseNames.includes("20261125002300_payment_claim_security.sql"));
+  assert.ok(phaseNames.includes("20261125002400_role_scoped_rls.sql"));
+  assert.ok(phaseNames.includes("20261125002500_first_admin_provisioning.sql"));
+  assert.ok(phaseNames.includes("20261125002600_first_admin_lint_cleanup.sql"));
   assert.equal(new Set(phaseNames).size, phaseNames.length);
   assert.ok(phaseNames.includes("20261125001900_disable_legacy_order_rpc.sql"));
 });

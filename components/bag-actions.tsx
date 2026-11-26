@@ -21,7 +21,18 @@ export function AddToBag({ product, variants }: { product: Product; variants: Pr
   const variant = selectableVariants.find((item) => item.id === variantId);
   const available = Boolean(variant && (variant.stock_quantity === null || variant.stock_quantity > 0));
   const max = variant?.stock_quantity === null ? 20 : Math.min(20, variant?.stock_quantity ?? 1);
-  const add = async () => { if (!variant || !available) return; const response = variant.id.startsWith("local-") ? null : await authFetch("/api/cart/items", { method: "POST", body: JSON.stringify({ product_id: product.id, variant_id: variant.id, quantity }) }); if (response) { const body = await response.json().catch(() => ({})); setMessage(response.ok ? "ADDED TO BAG ✓" : body.error ?? "Could not add this item."); return; } const bag = readBag(); const found = bag.find((item) => item.variant_id === variant.id); const nextQuantity = (found?.quantity ?? 0) + quantity; writeBag(found ? bag.map((item) => item.variant_id === variant.id ? { ...item, quantity: nextQuantity } : item) : [...bag, { product_id: product.id, variant_id: variant.id, slug: product.slug, name: product.name, image: product.primaryImageUrl, size: variant.size, quantity, pricePaise: variant.price_paise ?? product.pricePaise }]); setMessage("ADDED TO BAG ✓"); };
+  const add = async () => {
+    if (!variant || !available) return;
+    const session = (await supabase?.auth.getSession())?.data.session;
+    if (session && variant.id.startsWith("local-")) {
+      setMessage("This product is not configured for account checkout yet. Please try again after inventory is set up.");
+      return;
+    }
+    const response = variant.id.startsWith("local-") ? null : await authFetch("/api/cart/items", { method: "POST", body: JSON.stringify({ product_id: product.id, variant_id: variant.id, quantity }) });
+    if (response) { const body = await response.json().catch(() => ({})); setMessage(response.ok ? "ADDED TO BAG ✓" : body.error ?? "Could not add this item."); return; }
+    const bag = readBag(); const found = bag.find((item) => item.variant_id === variant.id); const nextQuantity = (found?.quantity ?? 0) + quantity;
+    writeBag(found ? bag.map((item) => item.variant_id === variant.id ? { ...item, quantity: nextQuantity } : item) : [...bag, { product_id: product.id, variant_id: variant.id, slug: product.slug, name: product.name, image: product.primaryImageUrl, size: variant.size, quantity, pricePaise: variant.price_paise ?? product.pricePaise }]); setMessage("ADDED TO BAG ✓");
+  };
   return <div className="purchase-panel"><div className="size-heading"><span>SIZE</span><span>{variants.length ? "SELECT A SIZE" : "SIZES AVAILABLE"}</span></div><div className="size-grid">{selectableVariants.map((item) => { const inStock = item.stock_quantity === null || item.stock_quantity > 0; return <button type="button" key={item.id} disabled={!inStock} className={variant?.id === item.id ? "selected" : ""} onClick={() => setVariantId(item.id)}>{item.size}</button>; })}</div><label>QUANTITY<div className="quantity-stepper"><button type="button" aria-label="Decrease quantity" onClick={() => setQuantity(Math.max(1, quantity - 1))}>−</button><span aria-live="polite">{quantity}</span><button type="button" aria-label="Increase quantity" disabled={quantity >= max} onClick={() => setQuantity(Math.min(max, quantity + 1))}>+</button></div></label><button className="add-button" type="button" onClick={add} disabled={!available}>{available ? "ADD TO BAG" : "UNAVAILABLE"}</button>{message && <p role="status">{message}</p>}<Link className="bag-link" href="/bag">VIEW BAG <span>→</span></Link></div>;
 }
 

@@ -5,6 +5,7 @@ import { PublicApiError } from "@/lib/http";
 export type CartMergeItem = {
   productId: string;
   variantId: string;
+  size?: string;
   quantity: number;
 };
 
@@ -20,9 +21,15 @@ export async function mergeCartItems(
   userId: string,
   items: CartMergeItem[],
 ) {
-  const variants = await Promise.all(
-    items.map((item) => validateVariant(client, item.productId, item.variantId, item.quantity)),
-  );
+  const resolvedItems = await Promise.all(items.map(async (item) => {
+    if (item.variantId) return item;
+    if (!item.size) throw new PublicApiError("A bag item is missing its size.");
+    const { data: variant, error } = await client.from("product_variants").select("id").eq("product_id", item.productId).eq("size", item.size).eq("active", true).maybeSingle();
+    if (error) throw error;
+    if (!variant) throw new PublicApiError("A saved bag item is no longer available.");
+    return { ...item, variantId: variant.id };
+  }));
+  const variants = await Promise.all(resolvedItems.map((item) => validateVariant(client, item.productId, item.variantId, item.quantity)));
 
   const { data: cart, error: cartError } = await client
     .from("carts")
@@ -32,7 +39,7 @@ export async function mergeCartItems(
 
   if (cartError || !cart) throw cartError ?? new Error("Cart could not be created.");
 
-  for (const [index, item] of items.entries()) {
+  for (const [index, item] of resolvedItems.entries()) {
     const { data: existing, error: lookupError } = await client
       .from("cart_items")
       .select("id,quantity")
